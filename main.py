@@ -1,4 +1,5 @@
 import time 
+import sys
 
 from nfc.clf import RemoteTarget
 from broadcast_frame_contactless_frontend import BroadcastFrameContactlessFrontend
@@ -28,8 +29,18 @@ def main(driver, interface, path, broadcast=''):
 if __name__ == "__main__":
     # Broadcast frames are only implemented for PN532. Feel free to add support for other devices.
     driver = "pn532"
-    # Change to suit your configuration
-    path = "S4"
+
+    path = None
+
+    if len(sys.argv) == 2:
+        path = sys.argv[1]
+    else:
+        print(f"usage: {sys.argv[0]} DEVICE_NAME")
+        print()
+        print(f"DEVICE_NAME - the name of the device. e.g. 'USB0' for /dev/ttyUSB0")
+        sys.exit(1)
+
     interface = "tty"
     broadcast = "48656c6c6f20776f726c64"
+
     main(driver, interface, path, broadcast)
