@@ -64,6 +64,9 @@ To run the code, use `python3 main.py` command.
 Example code doesn't do anything else apart from sending broadcast frames and printing out the information of found remote contactless targets. Change as you wish.
 
 
+#### Polling for specific frames
+To set up PN-532 to poll for specific frames only, run `python3 reader_tests.py <path> <polling_type>` where `polling_a` = Polling for Type A, `polling_b` = Polling for Type B, and `polling_a_b` = Polling for Type A and B.
+
 ### Common issues
 
 1. If you're running nfcpy on Linux, it may try to increase the baudrate of PN532 connection together with the baudrate of your serial device. Some poorly-made/cloned devices might have problems operating on speeds higher than 115200 baud.  
