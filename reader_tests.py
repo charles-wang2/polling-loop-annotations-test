@@ -19,7 +19,6 @@ def main(driver, interface, path, test_name, broadcast=''):
         targets = ['106B']
     elif test_name == 'polling_a_b':
         targets = ['106A', '106B']
-
     while True:
         #Polls for appropriate targets based on test name
         rdwr_options = {
