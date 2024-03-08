@@ -19,7 +19,6 @@ def main(driver, interface, path, test_name, broadcast=''):
         targets = ['106B']
     elif test_name == 'polling_a_b':
         targets = ['106A', '106B']
-
     while True:
         #Polls for appropriate targets based on test name
         rdwr_options = {
@@ -30,10 +29,13 @@ def main(driver, interface, path, test_name, broadcast=''):
         if not tag:
             continue
 
+
+        #expected responses - first response: "123456789000", second response: "1481148114819000"
         cla = 0x00
         ins = 0xA4
         p1 = 0x04
         p2 = 0x00
+        
         response = tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex('F005060708'), check_status=False)
         second_response = tag.transceive(bytearray.fromhex('80CA01F000'), timeout = None)
         log.info("first_response: " + response.hex() + ", second_response: " + second_response.hex())
