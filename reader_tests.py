@@ -14,6 +14,7 @@ def main(driver, interface, path, test_name, broadcast=''):
     default_targets = ['106A']
     targets = default_targets
     if test_name == 'polling_a':
+        print("polling a")
         targets = ['106A']
     elif test_name == 'polling_b':
         targets = ['106B']
@@ -25,20 +26,51 @@ def main(driver, interface, path, test_name, broadcast=''):
             'targets': targets,
             'on-connect': lambda Tag: False
         }
+        print("targets" + str(targets))
         tag = clf.connect(rdwr=rdwr_options)
         if not tag:
             continue
 
+        print("tag: " + str(tag))
+
+
+
+        #Send these for all the polling tests: A, B, A+B
 
         #expected responses - first response: "123456789000", second response: "1481148114819000"
         cla = 0x00
         ins = 0xA4
         p1 = 0x04
         p2 = 0x00
+        #basic command apdu
+        command_apdu = '80CA01F000'
+
+        responses = []
+        #if tests passed: mark = hello
+
+        #payment service 1
+        #build select apdu
+        if (test_name == 'payment_service_1'):
+            ppse_aid = '325041592E5359532E4444463031'
+            mc_aid = 'A0000000041010'
+
+            apdu_response_expected_sequence = ['FFFF9000', 'FFEF9000', 'FFDFFFAABB9000']
+
+            responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(ppse_aid)))
+            responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(mc_aid)))
+            responses.append(tag.transceive(bytearray.fromhex(command_apdu), timeout = None))
+
+        else:
+            responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex('F005060708'), check_status=False))
+            responses.append(tag.transceive(bytearray.fromhex(command_apdu), timeout = None))
+
+        for response in responses:
+            print("response " + response.hex())
         
-        response = tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex('F005060708'), check_status=False)
-        second_response = tag.transceive(bytearray.fromhex('80CA01F000'), timeout = None)
-        log.info("first_response: " + response.hex() + ", second_response: " + second_response.hex())
+
+
+
+
         time.sleep(3)
 
 

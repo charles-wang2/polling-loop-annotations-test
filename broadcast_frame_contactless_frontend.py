@@ -23,6 +23,7 @@ def print_data(data):
 class BroadcastFrameContactlessFrontend(ContactlessFrontend):
     def sense(self, *targets, **options):
         def sense_tta(target):
+            print("sense_tta")
             if target.sel_req and len(target.sel_req) not in (4, 7, 10):
                 raise ValueError("sel_req must be 4, 7, or 10 byte")
             target = self.device.sense_tta(target)
@@ -51,6 +52,7 @@ class BroadcastFrameContactlessFrontend(ContactlessFrontend):
             return target
 
         def sense_ttb(target):
+            print("sense_ttb")
             return self.device.sense_ttb(target)
 
         def sense_ttf(target):

@@ -78,6 +78,13 @@ To set up PN-532 to poll for specific frames only, run `python3 reader_tests.py 
 2. If you're getting frame index/malformation errors, try increasing broadcast frame response timeout in file `broadcast_frame_contactless_frontend.py` at line 86.  
    Beware that timeouts larger than 0.3 seconds are not adviced for optimal performance. 
 3. "Everything runs but no magic happens". Verify that you've changed broadcast frame to the value that you need. Beware that default value is just `Hello world` in encoded form.
+4. There is an issue with reader Type B in the nfcpy library for PN 532. The following options exist to fix this:
+   1. In library install location, `/site-packages/nfc/clf/pn532.py`, replace `data = bytearray.fromhex("FF 04 85")` with `data = bytearray.fromhex("FF 17 85")`. 
+   2. When installing nfcpy as a dependency, instead of `python3 -m pip install nfcpy`, run this instead: `python3 -m pip install -egit+https://github.com/charles-wang2/nfcpy.git@master#egg=nfcpy`
+
+
+
+
 
 ## License notice
 
