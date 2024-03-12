@@ -71,10 +71,12 @@ class BroadcastFrameContactlessFrontend(ContactlessFrontend):
             # and adding all support checks there. For simplicity, everthing has been included in one file here
             if broadcast is None or len(broadcast) <= 0:
                 # Skip broadcast if nothing to broadcast
+                log.info("nothing to broadcast")
                 return 
             
             if not any(target.brty.endswith(m) for m in ('A', 'B')):
                 # Skip broadcast for any NFC type that's not A or B
+                log.info("skipping")
                 return
 
             if isinstance(self.device.chipset, nfc.clf.pn53x.Chipset):
@@ -95,12 +97,15 @@ class BroadcastFrameContactlessFrontend(ContactlessFrontend):
                 raise UnsupportedTargetError(f"Broadcast frames are not supported with chipset {self.device} for target {target}")
         # Modified code END
 
+        print("hellooooo")
         for target in targets:
             if not isinstance(target, RemoteTarget):
                 raise ValueError("invalid target argument type: %r" % target)
 
+
         with self.lock:
             if self.device is None:
+                print("device is none")
                 raise IOError(errno.ENODEV, os.strerror(errno.ENODEV))
 
             self.target = None  # forget captured target
