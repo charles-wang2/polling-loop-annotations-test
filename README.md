@@ -44,7 +44,7 @@ Modules like ACR122 are based on PN532, so implementation should be very similla
 2. (Optional) use the Python virtual environment:
     - Create the environment `python3 -m venv ./venv`;
     - Activate the environment `source ./venv/bin/activate`.
-3. Install the required dependencies (only nfcpy) `python3 -m pip install nfcpy` or using the provided requirements file `python3 -m pip install -r requirements.py` (note: see Common Issues #4 about a bug in nfcpy. There is an alternative command to install the dependency)
+3. Install the required dependencies (only nfcpy) `python3 -m pip install nfcpy` or using the provided requirements file `python3 -m pip install -r requirements.py` (note: see Common Issues #4 about a bug in nfcpy. The following alternative command has this bug patched if you don't wish to manually change the code yourself: `python3 -m pip install -egit+https://github.com/charles-wang2/nfcpy.git@master#egg=nfcpy`)
 4. Open the `main.py` file using any code editor:
     - Modify path to your device:
         - In MacOS, `ls /dev/tty.*` command returns `/dev/tty.usbserial-0001` for connected device, so the value of `path` variable should be `"usbserial-0001"`;
