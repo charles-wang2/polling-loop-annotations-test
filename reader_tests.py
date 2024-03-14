@@ -15,10 +15,11 @@ def on_release(tag):
 
 def main(driver, interface, path, test_name, broadcast=''):
     log.setLevel('DEBUG')
+
+    #Sets targets appropriately for polling loop
     default_targets = ['106A']
     targets = default_targets
     if test_name == 'polling_a':
-        log.info("polling a")
         targets = ['106A']
     elif test_name == 'polling_b':
         targets = ['106B']
@@ -28,14 +29,13 @@ def main(driver, interface, path, test_name, broadcast=''):
     second_loop = False
     while True:
         clf = BroadcastFrameContactlessFrontend(f"{interface}:{path}:{driver}")
-        print("top of loop")
-        #Polls for appropriate targets based on test name
+        log.info("top of loop")
         rdwr_options = {
             'targets': targets,    
             'on-connect': on_connected,
             'on-release': on_release
         }
-        print("targets" + str(targets))
+        log.info("targets" + str(targets))
         tag = clf.connect(rdwr=rdwr_options)
         if not tag:
             continue
@@ -64,12 +64,12 @@ def main(driver, interface, path, test_name, broadcast=''):
         offhost_command_apdu = '80CA9F7F00'
         responses = []
         #if tests passed: return failure vs succcess
+        apdu_response_expected_sequence = []
 
         #payment service 1 - used for single payment emulator and when wallet role is available.
         #build select apdu
         if (test_name == 'payment_service_1'):
             apdu_response_expected_sequence = ['FFFF9000', 'FFEF9000', 'FFDFFFAABB9000']
-
             responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(ppse_aid)))
             responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(mc_aid)))
             responses.append(tag.transceive(bytearray.fromhex(command_apdu), timeout = 5000))
@@ -124,25 +124,23 @@ def main(driver, interface, path, test_name, broadcast=''):
         # elif test_name == 'fifty_taps':
         #fifty taps test: uses transport_service_1 logic
         elif test_name == 'on_and_off_host_service':
-            log.info("test? : " + str(tag))
-            #00a4040008a000000151000000
 
             try: 
                 responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex('A000000151000000')))
             except Exception as error:
-                print("hello")
+                log.info("exception - expected")    
             try:
                 responses.append(tag.transceive(bytearray.fromhex(offhost_command_apdu), timeout = None))
             except Exception as error:
-                print("hello again")
+                log.info("exception - expected")    
             try: 
                 responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex('A000000003000000')))
             except Exception as error:
-                print("hello #3")
+                log.info("exception - expected")    
             try: 
                 responses.append(tag.transceive(bytearray.fromhex(offhost_command_apdu), timeout = None))
             except Exception as error:
-                print("hello #4")
+                log.info("exception - expected")    
             responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(access_aid)))
             #only this one shoudl work
             responses.append(tag.transceive(bytearray.fromhex(command_apdu)))
@@ -165,12 +163,9 @@ def main(driver, interface, path, test_name, broadcast=''):
                 try:
                     tag.transceive(bytearray.fromhex(select_transport_apdu), timeout = 1)
                 except Exception as error:
-                    print("exception expected")
-                    print(error)
                     second_loop = True
                     clf.close()
                     tag = None
-                    # time.sleep(1)
                     continue
             responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(transport_prefix_aid + 'FFFF')))
             responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(transport_prefix_aid + 'FFAA')))
@@ -187,8 +182,10 @@ def main(driver, interface, path, test_name, broadcast=''):
             responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex('F005060708'), check_status=False))
             # responses.append(tag.transceive(bytearray.fromhex(offho), timeout = None))
 
-        for response in responses:
-            print("response " + response.hex())
+        assert len(responses) == len(apdu_response_expected_sequence)
+        for i in range(len(responses)):
+            log.info("responses. Expected: %s actual: %s", responses[i].hex(), apdu_response_expected_sequence[i])
+        #if all the same, return test pass. else, return false
         clf.close()
         
 
