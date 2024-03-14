@@ -23,7 +23,6 @@ def print_data(data):
 class BroadcastFrameContactlessFrontend(ContactlessFrontend):
     def sense(self, *targets, **options):
         def sense_tta(target):
-            print("sense_tta")
             if target.sel_req and len(target.sel_req) not in (4, 7, 10):
                 raise ValueError("sel_req must be 4, 7, or 10 byte")
             target = self.device.sense_tta(target)
@@ -52,7 +51,6 @@ class BroadcastFrameContactlessFrontend(ContactlessFrontend):
             return target
 
         def sense_ttb(target):
-            print("sense_ttb")
             return self.device.sense_ttb(target)
 
         def sense_ttf(target):
@@ -71,7 +69,6 @@ class BroadcastFrameContactlessFrontend(ContactlessFrontend):
             # and adding all support checks there. For simplicity, everthing has been included in one file here
             if broadcast is None or len(broadcast) <= 0:
                 # Skip broadcast if nothing to broadcast
-                log.info("nothing to broadcast")
                 return 
             
             if not any(target.brty.endswith(m) for m in ('A', 'B')):
@@ -88,6 +85,7 @@ class BroadcastFrameContactlessFrontend(ContactlessFrontend):
                     broadcast = with_crc16a(broadcast)
                 try:
                     response = self.device.chipset.in_communicate_thru(broadcast, timeout=0.1)
+                    log.info("response " + response)
                     # Can proccess response here later
                 except (nfc.clf.pn53x.Chipset.Error, ) as e:
                     # Timeout is OK for broadcast frames as we don't always expect an answer

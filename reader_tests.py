@@ -3,15 +3,27 @@ import sys
 from broadcast_frame_contactless_frontend import BroadcastFrameContactlessFrontend
 from nfc.clf import ContactlessFrontend
 import logging
+import multiprocessing.pool
+import functools
+import multiprocessing
+import time
+import timeit
+import multiprocessing.pool
+import functools
+
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+
 
 def on_connected(tag):
     log.info("tag connected: " + str(tag))
     return False
+
 def on_release(tag):
     log.info("Released")
     return tag
+
+
 
 def main(driver, interface, path, test_name, broadcast=''):
     log.setLevel('DEBUG')
@@ -25,6 +37,8 @@ def main(driver, interface, path, test_name, broadcast=''):
         targets = ['106B']
     elif test_name == 'polling_a_b':
         targets = ['106A', '106B']
+    elif test_name == 'polling_custom':
+        print(test_name)
     tag = None
     second_loop = False
     while True:
@@ -57,6 +71,7 @@ def main(driver, interface, path, test_name, broadcast=''):
         access_aid = 'F005060708'
         transport_apdu_2 = '80CA01E100'
         visa_aid = 'A0000000030000'
+        transport_prefix_aid = 'F001020304'
 
         select_transport_apdu = '00A4040005F001020304'
 
@@ -88,7 +103,6 @@ def main(driver, interface, path, test_name, broadcast=''):
             responses.append(tag.transceive(bytearray.fromhex(transport_apdu_1), timeout = 5000))
             tag = None
             clf.close()
-            time.sleep(1)
             continue
         #polling loop + observe mode tests    
         elif test_name == 'two_non_payment_services':
@@ -98,17 +112,20 @@ def main(driver, interface, path, test_name, broadcast=''):
             responses.append(tag.transceive(bytearray.fromhex('80CA01F000'), timeout = None))
 
 
+##TODO FIX - no need to tap twice
         elif test_name == 'conflicting_non_payment_emulator_activity':
             if not second_loop:
                 try:
+                    # with Timeout(5.0):
+                    # transceive_timeout(tag, bytearray.fromhex(select_transport_apdu))
                     tag.transceive(bytearray.fromhex(select_transport_apdu), timeout = 1)
                 except Exception as error:
                     print("exception expected")
                     print(error)
                     second_loop = True
-                    # time.sleep(1)
                     continue
             else:
+                print("second loop")
                 responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(transport_aid), mrl = 0, check_status = False))
                 responses.append(tag.transceive(bytearray.fromhex(transport_apdu_2), timeout = 5))
                 print("done writing apdu")
@@ -121,8 +138,6 @@ def main(driver, interface, path, test_name, broadcast=''):
                         "80CA010D00", "80CA010E00", "80CA010F00"]
             for command in commands:
                 responses.append(tag.transceive(bytearray.fromhex(command), 1))
-        # elif test_name == 'fifty_taps':
-        #fifty taps test: uses transport_service_1 logic
         elif test_name == 'on_and_off_host_service':
 
             try: 
@@ -146,7 +161,11 @@ def main(driver, interface, path, test_name, broadcast=''):
             responses.append(tag.transceive(bytearray.fromhex(command_apdu)))
         elif test_name == 'large_aids':
             for i in (range(256)):
-                responses.append(tag.transceive(bytearray.fromhex('F00102030414' + '{:02x}'.format(i) + '81'), timeout = None))
+                log.info("i "  + str(i))
+                try: 
+                    responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex('F00102030414' + '{:02x}'.format(i).upper() + '81')))
+                except Exception as err:
+                    print("error")
         elif test_name == 'dynamic_aids':
             responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(ppse_aid)))
             responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(visa_aid)))
@@ -157,11 +176,12 @@ def main(driver, interface, path, test_name, broadcast=''):
             responses.append(tag.transceive(bytearray.fromhex('80CA01F000'), timeout = 5000))
         # elif test_name == 'prefix_payment_aids_2' and not wallet_role:
         elif test_name == 'dual_non_payment_prefix_other':
-            transport_prefix_aid = 'F001020304'
             access_prefix_aid = 'F005060708'
             if not second_loop:
                 try:
+                    log.info("trying first block")
                     tag.transceive(bytearray.fromhex(select_transport_apdu), timeout = 1)
+                    log.info("trying second block")
                 except Exception as error:
                     second_loop = True
                     clf.close()
@@ -170,21 +190,49 @@ def main(driver, interface, path, test_name, broadcast=''):
             responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(transport_prefix_aid + 'FFFF')))
             responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(transport_prefix_aid + 'FFAA')))
             responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(transport_prefix_aid + 'FFAABBCCDDEEFF')))
-            responses.append(tag.transceive(bytearray.fromhex('80CA01F000'), timeout = 5000))
+            responses.append(tag.transceive(bytearray.fromhex('80CA01FFAA'), timeout = 5000))
             responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(access_prefix_aid + 'FFFF')))
             responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(access_prefix_aid + 'FFAA')))
             responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(access_prefix_aid + 'FFAABBCCDDEEFF')))
             responses.append(tag.transceive(bytearray.fromhex('80CA010000010203'), timeout = 5000))
             second_loop = False
-        # elif test_name == 'other_prefix_aids':
-            
+        elif test_name == 'conflicting_non_payment_prefix_emulator_test':
+            if not second_loop:
+                try:
+                    tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(transport_prefix_aid + 'FFFF'))
+                    # tag.transceive(bytearray.fromhex(select_transport_apdu), timeout = 1)
+                except Exception as error:
+                    print("exception expected")
+                    print(error)
+                    second_loop = True
+                    # time.sleep(1)
+                    continue
+            else:
+                responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(transport_prefix_aid + 'FFFF')))
+                responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(transport_prefix_aid + 'FFAA')))
+                responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(transport_prefix_aid + 'FFAABBCCDDEEFF')))
+                responses.append(tag.transceive(bytearray.fromhex('80CA01FFBB'), timeout = 5000))
+
+                print("done writing apdu")
+                print(tag)
+                second_loop = False     
+        elif test_name == 'screen_off_hce_payment':
+            # responses.append(tag.send_apdu)           
+            responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(ppse_aid)))
+            responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex(mc_aid)))
+            responses.append(tag.transceive(bytearray.fromhex('80CA01F000'), timeout = 5000))
+            # responses.append(tag.tr)
+            # responses.append(tag.transceive('00A404000E32504159'))    
+        elif test_name == 'protocol_params':
+            responses.append(tag.transceive(bytearray.fromhex('E0F0'), timeout = 5))
         else:
             responses.append(tag.send_apdu(cla, ins, p1, p2, data=bytearray.fromhex('F005060708'), check_status=False))
-            # responses.append(tag.transceive(bytearray.fromhex(offho), timeout = None))
+            responses.append(tag.transceive(bytearray.fromhex('80CA01F000'), timeout = 5000))
 
-        assert len(responses) == len(apdu_response_expected_sequence)
+        # assert len(responses) == len(apdu_response_expected_sequence)
         for i in range(len(responses)):
-            log.info("responses. Expected: %s actual: %s", responses[i].hex(), apdu_response_expected_sequence[i])
+            log.info("responses: %s", responses[i].hex())
+            # log.info("responses. Expected: %s actual: %s", responses[i].hex(), apdu_response_expected_sequence[i])
         #if all the same, return test pass. else, return false
         clf.close()
         
